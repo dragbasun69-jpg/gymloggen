@@ -1,5 +1,5 @@
 // Höj versionen när du ändrar filerna, så hämtas nya versionen direkt.
-const CACHE = 'gymloggen-v1';
+const CACHE = 'gymloggen-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
