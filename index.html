@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Gymloggen</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#0f1115; --card:#181b22; --card2:#20242d; --line:#2c313c;
+  --text:#f2f4f7; --muted:#9aa3b2; --accent:#b6f24a; --accent-ink:#142000;
+  --warn:#ffb547; --bad:#ff6b6b; --good:#5ee39a; --radius:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:rgba(15,17,21,.92);backdrop-filter:blur(8px);padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+header h1{font-size:20px;margin:0;letter-spacing:.2px}
+header .sub{font-size:12px;color:var(--muted)}
+#syncDot{width:10px;height:10px;border-radius:50%;background:#555;display:inline-block;margin-right:6px}
+#syncDot.on{background:var(--good)} #syncDot.busy{background:var(--warn)} #syncDot.err{background:var(--bad)}
+main{padding:14px 14px 110px;max-width:640px;margin:0 auto}
+h2{font-size:22px;margin:6px 2px 12px}
+h3{font-size:17px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.row{display:flex;gap:10px;align-items:center}
+.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.grow{flex:1}
+button,.btn{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--card2);color:var(--text);cursor:pointer;min-height:46px}
+button:active{transform:scale(.98)}
+.primary{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.danger{background:#3a1f22;color:#ffb3b3}
+.ghost{background:transparent;border:1px solid var(--line)}
+.big{width:100%;font-size:18px;padding:16px;min-height:56px}
+.chip{display:inline-block;padding:8px 12px;border-radius:999px;background:var(--card2);border:1px solid var(--line);margin:0 6px 6px 0;font-size:14px}
+.chip.sel{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{font:inherit;width:100%;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0b0d11;color:var(--text);min-height:46px}
+textarea{min-height:120px;font-family:ui-monospace,monospace;font-size:13px}
+.check{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);color:var(--text);font-size:16px;margin:0}
+.check input{width:24px;height:24px;min-height:0;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.ex{border-top:1px solid var(--line);padding:10px 0}
+.ex:first-of-type{border-top:0}
+.exname{font-weight:650}
+.tag{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--card2);color:var(--muted);margin-left:6px;white-space:nowrap}
+.setrow{display:grid;grid-template-columns:28px 1fr 1fr 56px;gap:8px;align-items:center;margin:8px 0}
+.setrow input{text-align:center;font-size:18px;padding:10px 6px}
+.setrow .n{color:var(--muted);text-align:center}
+.setrow .ok{min-height:48px;padding:0;font-size:22px;background:var(--card2)}
+.setrow.done .ok{background:var(--good);color:#052b14}
+.setrow.done input{border-color:#2f6b49}
+.sethead{display:grid;grid-template-columns:28px 1fr 1fr 56px;gap:8px;font-size:12px;color:var(--muted);text-align:center}
+a{color:var(--accent)}
+.linkbtn{background:none;border:0;color:var(--accent);padding:6px 0;min-height:0;font-size:14px}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:6;background:#12151b;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;border-radius:0;color:var(--muted);font-size:12px;padding:8px 0 10px;min-height:64px;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button svg{width:24px;height:24px}
+nav button.act{color:var(--accent)}
+#timer{position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:7;background:#1e2a10;border:1px solid #4d6b1e;border-radius:16px;padding:10px 12px;display:none;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#timer.show{display:flex}
+#timer .t{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;min-width:86px}
+#timer.over{background:#3a2a0c;border-color:#8a6420}
+#timer button{min-height:42px;padding:8px 12px}
+.sheetwrap{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.sheetwrap.show{display:flex}
+.sheet{background:var(--card);width:100%;max-width:640px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+canvas{width:100%;height:200px;display:block}
+.stat{font-size:28px;font-weight:800}
+.plates{display:flex;gap:4px;align-items:center;justify-content:center;margin:14px 0;min-height:90px}
+.plate{border-radius:4px;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;text-orientation:mixed}
+.barstub{height:14px;width:60px;background:#999;border-radius:3px}
+.list-item{padding:12px 0;border-bottom:1px solid var(--line)}
+.list-item:last-child{border-bottom:0}
+.good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+.toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top));transform:translateX(-50%);background:#2a2f3a;color:#fff;padding:10px 16px;border-radius:12px;z-index:30;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90vw}
+.progress{height:8px;background:var(--card2);border-radius:99px;overflow:hidden}
+.progress>div{height:100%;background:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Gymloggen</h1>
+    <div class="sub">Nordic Wellness Läreda</div>
+  </div>
+  <div class="small muted" id="syncLabel"><span id="syncDot"></span><span id="syncText">Lokalt</span></div>
+</header>
+
+<main id="view"></main>
+
+<div id="timer">
+  <div class="t" id="timerT">0:00</div>
+  <div class="grow small muted" id="timerLabel">Vila</div>
+  <button data-action="timer-add">+30 s</button>
+  <button data-action="timer-stop">Klar</button>
+</div>
+
+<div class="sheetwrap" id="sheetwrap"><div class="sheet" id="sheet"></div></div>
+
+<nav id="nav">
+  <button data-tab="pass" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Pass</button>
+  <button data-tab="program"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Program</button>
+  <button data-tab="historik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16l4-5 3 3 5-7"/></svg>Historik</button>
+  <button data-tab="mer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Profil</button>
+</nav>
+
+<script type="module">
+/* ============================================================
+   FIREBASE-INSTÄLLNINGAR
+   Klistra in din firebaseConfig här (från Firebase-konsolen),
+   så slipper du klistra in den på varje enhet.
+   Låt stå som null om du hellre klistrar in den i appen.
+   ============================================================ */
+const FIREBASE_CONFIG = null;
+const FIRESTORE_COLLECTION = 'gymloggen';
+const FB_VERSION = '10.12.2';
+
+/* ------------------------- Data ------------------------- */
+const EQUIP = [
+  ['skivstang','Skivstång och viktskivor'],
+  ['rack','Ställning eller crosscage'],
+  ['bank','Justerbar bänk'],
+  ['hantlar','Hantlar'],
+  ['kettlebell','Kettlebells'],
+  ['kabel','Kabelmaskin'],
+  ['latsdrag','Latsdrag'],
+  ['benpress','Benpress'],
+  ['bensparkcurl','Benspark och lårcurl (maskin)'],
+  ['brostpressmaskin','Bröstpress (maskin)'],
+  ['axelpressmaskin','Axelpress (maskin)'],
+  ['chins','Chinsstång'],
+];
+
+/* f = startvikt som andel av kroppsvikt för en van man (per hantel för hantlar).
+   inc: 'bar' = 2,5 kg, 'db' = hantelsteg, siffra = kg. */
+const EX = {
+  knaboj:{n:'Knäböj med skivstång',eq:['skivstang','rack'],free:1,lvl:2,inc:'bar',f:.5,min:20,per:'stång',yt:'knäböj skivstång teknik'},
+  gobletknaboj:{n:'Gobletknäböj',eq:['hantlar'],free:1,lvl:1,inc:'db',f:.16,per:'hantel',yt:'goblet squat teknik'},
+  benpress:{n:'Benpress',eq:['benpress'],free:0,lvl:1,inc:5,f:1.0,per:'maskin',yt:'benpress teknik'},
+  marklyft:{n:'Marklyft',eq:['skivstang'],free:1,lvl:2,inc:'bar',f:.6,min:40,per:'stång',yt:'marklyft teknik nybörjare'},
+  rumanskt:{n:'Rumänsk marklyft (skivstång)',eq:['skivstang'],free:1,lvl:2,inc:'bar',f:.45,min:20,per:'stång',yt:'romanian deadlift form'},
+  hantelrdl:{n:'Rumänsk marklyft (hantlar)',eq:['hantlar'],free:1,lvl:1,inc:'db',f:.16,per:'hantel',yt:'dumbbell romanian deadlift form'},
+  hipthrust:{n:'Höftlyft med skivstång',eq:['skivstang','bank'],free:1,lvl:2,inc:'bar',f:.5,min:20,per:'stång',yt:'barbell hip thrust form'},
+  kbsving:{n:'Kettlebellsving',eq:['kettlebell'],free:1,lvl:2,inc:4,f:.16,per:'kettlebell',yt:'kettlebell swing teknik'},
+  lardcurl:{n:'Lårcurl i maskin',eq:['bensparkcurl'],free:0,lvl:1,inc:5,f:.3,per:'maskin',yt:'leg curl machine form'},
+  benspark:{n:'Benspark i maskin',eq:['bensparkcurl'],free:0,lvl:1,inc:5,f:.35,per:'maskin',yt:'leg extension machine form'},
+  utfall:{n:'Utfallssteg med hantlar',eq:['hantlar'],free:1,lvl:1,inc:'db',f:.1,per:'hantel',yt:'dumbbell lunges form'},
+  bulgarisk:{n:'Bulgarisk utfallsböj',eq:['hantlar','bank'],free:1,lvl:2,inc:'db',f:.1,per:'hantel',yt:'bulgarian split squat form'},
+  stepup:{n:'Step-up på bänk',eq:['hantlar','bank'],free:1,lvl:1,inc:'db',f:.08,per:'hantel',yt:'dumbbell step up form'},
+  banpress:{n:'Bänkpress',eq:['skivstang','bank','rack'],free:1,lvl:2,inc:'bar',f:.5,min:20,per:'stång',yt:'bänkpress teknik'},
+  hantelpress:{n:'Hantelpress på bänk',eq:['hantlar','bank'],free:1,lvl:1,inc:'db',f:.17,per:'hantel',yt:'dumbbell bench press form'},
+  lutandehantel:{n:'Lutande hantelpress',eq:['hantlar','bank'],free:1,lvl:1,inc:'db',f:.14,per:'hantel',yt:'incline dumbbell press form'},
+  brostpressmaskin:{n:'Bröstpress i maskin',eq:['brostpressmaskin'],free:0,lvl:1,inc:5,f:.4,per:'maskin',yt:'chest press machine form'},
+  armhavning:{n:'Armhävningar',eq:[],free:1,bw:1,lvl:1,per:'kroppsvikt',yt:'armhävningar teknik',range:[6,15]},
+  militarpress:{n:'Stående axelpress (skivstång)',eq:['skivstang','rack'],free:1,lvl:2,inc:'bar',f:.3,min:20,per:'stång',yt:'overhead press form'},
+  hantelaxelpress:{n:'Sittande axelpress (hantlar)',eq:['hantlar','bank'],free:1,lvl:1,inc:'db',f:.11,per:'hantel',yt:'seated dumbbell shoulder press form'},
+  axelpressmaskin:{n:'Axelpress i maskin',eq:['axelpressmaskin'],free:0,lvl:1,inc:5,f:.25,per:'maskin',yt:'shoulder press machine form'},
+  skivstangsrodd:{n:'Skivstångsrodd',eq:['skivstang'],free:1,lvl:2,inc:'bar',f:.4,min:20,per:'stång',yt:'barbell row form'},
+  hantelrodd:{n:'Enarms hantelrodd',eq:['hantlar','bank'],free:1,lvl:1,inc:'db',f:.18,per:'hantel',yt:'one arm dumbbell row form'},
+  sittanderodd:{n:'Sittande rodd i kabel',eq:['kabel'],free:0,lvl:1,inc:5,f:.45,per:'maskin',yt:'seated cable row form'},
+  chins:{n:'Chins',eq:['chins'],free:1,bw:1,lvl:3,per:'kroppsvikt',yt:'chin up teknik',range:[3,8]},
+  latsdrag:{n:'Latsdrag',eq:['latsdrag'],free:0,lvl:1,inc:5,f:.5,per:'maskin',yt:'lat pulldown form'},
+  bicepscurl:{n:'Bicepscurl med hantlar',eq:['hantlar'],free:1,lvl:1,inc:'db',f:.07,per:'hantel',yt:'dumbbell curl form'},
+  tricepspress:{n:'Triceps pushdown i kabel',eq:['kabel'],free:0,lvl:1,inc:2.5,f:.2,per:'maskin',yt:'triceps pushdown form'},
+  facepull:{n:'Face pulls i kabel',eq:['kabel'],free:0,lvl:1,inc:2.5,f:.15,per:'maskin',yt:'face pull form'},
+  sidolyft:{n:'Sidolyft med hantlar',eq:['hantlar'],free:1,lvl:1,inc:'db',f:.05,per:'hantel',yt:'lateral raise form'},
+  planka:{n:'Planka',eq:[],free:1,bw:1,lvl:1,unit:'sek',per:'kroppsvikt',yt:'planka teknik',range:[20,45]},
+  deadbug:{n:'Dead bug',eq:[],free:1,bw:1,lvl:1,per:'kroppsvikt',yt:'dead bug exercise',range:[8,12]},
+  pallof:{n:'Pallof press',eq:['kabel'],free:0,lvl:1,inc:2.5,f:.1,per:'maskin',yt:'pallof press form',range:[10,12]},
+  farmerswalk:{n:"Farmer's walk",eq:['hantlar'],free:1,lvl:1,inc:'db',f:.25,unit:'sek',per:'hantel',yt:'farmers walk form',range:[30,45]},
+};
+
+/* Tre helkroppspass. Ordning = prioritet; korta pass tar de första platserna. */
+const TEMPLATE = {
+  A:[{role:'main',c:['knaboj','gobletknaboj','benpress']},
+     {role:'main',c:['banpress','hantelpress','brostpressmaskin','armhavning']},
+     {role:'main',c:['skivstangsrodd','hantelrodd','sittanderodd']},
+     {role:'acc', c:['lardcurl','hantelrdl','rumanskt']},
+     {role:'core',c:['planka','deadbug']},
+     {role:'acc', c:['bicepscurl']},
+     {role:'acc', c:['facepull','sidolyft']}],
+  B:[{role:'main',c:['marklyft','rumanskt','hantelrdl','kbsving']},
+     {role:'main',c:['militarpress','hantelaxelpress','axelpressmaskin']},
+     {role:'main',c:['chins','latsdrag','hantelrodd']},
+     {role:'acc', c:['utfall','stepup','bulgarisk']},
+     {role:'core',c:['pallof','deadbug','planka']},
+     {role:'acc', c:['tricepspress','armhavning']},
+     {role:'acc', c:['sidolyft','facepull']}],
+  C:[{role:'main',c:['benpress','gobletknaboj','bulgarisk','knaboj']},
+     {role:'main',c:['lutandehantel','hantelpress','brostpressmaskin','armhavning']},
+     {role:'main',c:['latsdrag','sittanderodd','hantelrodd','chins']},
+     {role:'acc', c:['hipthrust','kbsving','hantelrdl']},
+     {role:'core',c:['farmerswalk','planka']},
+     {role:'acc', c:['facepull','sidolyft']},
+     {role:'acc', c:['bicepscurl','tricepspress']}],
+};
+
+const GOALS = {
+  styrka:{label:'Bli starkare',main:[5,8],acc:[8,12],restMain:150,restAcc:90},
+  muskler:{label:'Bygga muskler',main:[8,12],acc:[10,15],restMain:120,restAcc:75},
+  halsa:{label:'Hälsa och viktnedgång',main:[10,15],acc:[12,15],restMain:90,restAcc:60},
+};
+const EXPERIENCE = {nyborjare:'Nybörjare (under 6 mån)',van:'Van (6 mån till 2 år)',erfaren:'Erfaren (över 2 år)'};
+
+/* ------------------------- State ------------------------- */
+const LS_KEY = 'gymloggen.state.v1';
+const LS_CFG = 'gymloggen.fbconfig';
+const defaultState = () => ({
+  v:1, updatedAt:0,
+  profile:{name:'',sex:'man',age:'',height:'',weight:'',targetWeight:'',experience:'nyborjare',goal:'muskler',minutes:60,preferFree:true},
+  equipment:Object.fromEntries(EQUIP.map(e=>[e[0],true])),
+  dbStep:2,
+  program:null, lifts:{}, sessions:[], bodyweight:[], active:null,
+});
+let state = load();
+let tab = 'pass';
+let histSel = null;
+
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s && s.v) return Object.assign(defaultState(), s); }catch(e){}
+  return defaultState();
+}
+function persistLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+function save(){ state.updatedAt = Date.now(); persistLocal(); Sync.schedulePush(); }
+
+/* ------------------------- Hjälpare ------------------------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.').replace(/\s/g,'')); return isFinite(n) ? n : NaN; };
+const fmt = n => { if(n===''||n==null||!isFinite(n)) return ''; const r = Math.round(n*100)/100; return String(r).replace('.', ','); };
+const roundTo = (x, step) => Math.round(x/step)*step;
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+const incOf = ex => ex.inc==='bar' ? 2.5 : ex.inc==='db' ? (state.dbStep||2) : (ex.inc||2.5);
+const unitOf = ex => ex.unit==='sek' ? 'sek' : 'reps';
+const ytLink = ex => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(ex.yt || ex.n);
+const dateStr = (t, opt={weekday:'short',day:'numeric',month:'short'}) => new Date(t).toLocaleDateString('sv-SE', opt);
+const restStr = s => s>=60 ? (s%60 ? `${Math.floor(s/60)} min ${s%60} s` : `${s/60} min`) : `${s} s`;
+function toast(msg, ms=2600){ const d=document.createElement('div'); d.className='toast'; d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(), ms); }
+function weekStart(t=Date.now()){ const d=new Date(t); const day=(d.getDay()+6)%7; d.setHours(0,0,0,0); d.setDate(d.getDate()-day); return d.getTime(); }
+const available = ex => ex.eq.every(e => state.equipment[e]);
+
+/* ------------------------- Programregler ------------------------- */
+function maxLevel(p){ return p.experience==='erfaren' ? 3 : 2; }
+
+function pickExercise(slot, used, p){
+  const maxL = maxLevel(p);
+  let best=null, bestScore=Infinity;
+  slot.c.forEach((id,i)=>{
+    const ex=EX[id]; if(!ex || !available(ex) || ex.lvl>maxL) return;
+    let s=i;
+    if(p.preferFree && !ex.free) s+=3;
+    if(p.experience==='nyborjare' && ex.lvl>=2) s+=1.5;
+    if(num(p.age)>=60 && ex.lvl>=2 && p.experience!=='erfaren') s+=1;
+    if(used.has(id)) s+=10;
+    if(s<bestScore){bestScore=s;best=id;}
+  });
+  return best;
+}
+
+function scheme(role, exId, p){
+  const ex=EX[exId], g=GOALS[p.goal]||GOALS.muskler, age=num(p.age)||40;
+  let range, rest, sets;
+  if(role==='core'){ range = ex.range || [10,15]; rest=45; sets = p.experience==='erfaren'?3:2; }
+  else if(ex.bw && ex.range){ range = ex.range; rest = role==='main'?g.restMain:g.restAcc; sets = role==='main'?3:2; }
+  else if(role==='main'){
+    range = [...g.main];
+    if(age>=50 && range[0]<6) range=[6,10];
+    rest = g.restMain;
+    sets = p.experience==='erfaren'?4:3;
+  } else {
+    range = [...g.acc]; rest = g.restAcc;
+    sets = p.experience==='nyborjare'?2:3;
+  }
+  return {sets, repMin:range[0], repMax:range[1], rest};
+}
+
+function startWeight(exId, p){
+  const ex=EX[exId]; if(ex.bw) return 0;
+  const bw = num(p.weight)||80, age=num(p.age)||40;
+  const sexF = p.sex==='kvinna'?.6 : p.sex==='annat'?.8 : 1;
+  const expF = {nyborjare:.6, van:.9, erfaren:1.2}[p.experience]||.8;
+  const ageF = age>=65?.7 : age>=50?.85 : 1;
+  const inc = incOf(ex);
+  const step = ex.inc==='db' ? inc : (ex.inc==='bar' ? 2.5 : inc);
+  return Math.max(ex.min||step, roundTo(ex.f*bw*sexF*expF*ageF, step));
+}
+
+function itemsPerPass(min){ return min<=45 ? 5 : min>=75 ? 7 : 6; }
+
+function generateProgram(){
+  const p = state.profile, n = itemsPerPass(+p.minutes), used = new Set();
+  const passes = ['A','B','C'].map(k=>{
+    const items=[];
+    TEMPLATE[k].slice(0,n).forEach((slot,si)=>{
+      const id = pickExercise(slot, used, p);
+      if(!id) return;
+      used.add(id);
+      items.push({exId:id, slot:k+si, role:slot.role, ...scheme(slot.role,id,p)});
+      if(!state.lifts[id]) state.lifts[id] = {weight:startWeight(id,p), fails:0};
+    });
+    return {id:k, name:'Pass '+k, items};
+  });
+  state.program = {createdAt:Date.now(), passes, nextIndex:0};
+}
+
+function slotCandidates(slotKey){
+  const k=slotKey[0], i=+slotKey.slice(1);
+  return (TEMPLATE[k][i]?.c||[]).filter(id=>available(EX[id]));
+}
+function altCandidates(slotKey, current){
+  const base = slotCandidates(slotKey);
+  // lägg till övningar från samma "familj" i andra pass med samma position
+  const i=+slotKey.slice(1); const extra=[];
+  ['A','B','C'].forEach(k=>{ (TEMPLATE[k][i]?.c||[]).forEach(id=>{ if(available(EX[id]) && !base.includes(id) && !extra.includes(id)) extra.push(id); }); });
+  return [...base, ...extra].filter(id=>id!==current);
+}
+
+/* ------------------------- Pass (aktiv session) ------------------------- */
+function startSession(passIdx){
+  const pass = state.program.passes[passIdx];
+  state.active = {
+    id:uid(), passIdx, passId:pass.id, startedAt:Date.now(),
+    items: pass.items.map(it=>{
+      const ex=EX[it.exId], L=state.lifts[it.exId]||{weight:0};
+      return {...it, sets:Array.from({length:it.sets},()=>({w:ex.bw?0:L.weight, r:it.repMax, done:false}))};
+    })
+  };
+  save(); WakeLock.on(); render();
+}
+
+function finishSession(){
+  const a = state.active; if(!a) return;
+  const changes=[];
+  for(const it of a.items){
+    const ex=EX[it.exId], done=it.sets.filter(s=>s.done);
+    if(!done.length) continue;
+    const u = unitOf(ex);
+    if(ex.bw){
+      if(done.length>=it.sets.length && done.every(s=>s.r>=it.repMax))
+        changes.push({cls:'good', t:`${ex.n}: klarade ${it.repMax} ${u} i alla set. Gör det svårare nästa gång (${u==='sek'?'längre tid eller lägg på vikt':'långsammare tempo, extra vikt eller svårare variant'}).`});
+      continue;
+    }
+    const L = state.lifts[it.exId] || {weight:0, fails:0};
+    const inc = incOf(ex);
+    const minW = Math.min(...done.map(s=>num(s.w)||0));
+    const allTop = done.length>=it.sets.length && done.every(s=>s.r>=it.repMax);
+    const anyLow = done.some(s=>s.r<it.repMin);
+    if(allTop){
+      L.weight = Math.round((minW+inc)*100)/100; L.fails=0;
+      changes.push({cls:'good', t:`${ex.n}: alla reps klara. Nästa gång ${fmt(L.weight)} kg.`});
+    } else if(anyLow){
+      L.fails=(L.fails||0)+1;
+      if(L.fails>=3){
+        L.weight = Math.max(ex.min||0, roundTo(minW*0.9, ex.inc==='bar'?2.5:inc)); L.fails=0;
+        changes.push({cls:'warn', t:`${ex.n}: tre pass i rad under ${it.repMin} reps. Sänker till ${fmt(L.weight)} kg och bygger upp igen.`});
+      } else {
+        L.weight = minW || L.weight;
+        changes.push({cls:'muted', t:`${ex.n}: under ${it.repMin} reps i något set. Samma vikt nästa gång (${L.fails} av 3).`});
+      }
+    } else {
+      L.fails=0; if(minW) L.weight=minW;
+    }
+    state.lifts[it.exId]=L;
+  }
+  const finishedAt = Date.now();
+  const sess = {id:a.id, date:a.startedAt, passId:a.passId, minutes:Math.max(1,Math.round((finishedAt-a.startedAt)/60000)),
+    items:a.items.map(it=>({exId:it.exId, repMin:it.repMin, repMax:it.repMax, sets:it.sets.filter(s=>s.done).map(s=>({w:num(s.w)||0, r:s.r}))})).filter(it=>it.sets.length)};
+  if(sess.items.length) state.sessions.unshift(sess);
+  state.program.nextIndex = (a.passIdx+1) % state.program.passes.length;
+  state.active=null; Timer.stop(); WakeLock.off(); save();
+  openSheet(`<h2>Bra jobbat!</h2>
+    <p class="muted">${esc('Pass '+sess.passId)} · ${sess.minutes} min · ${Math.round(volume(sess)).toLocaleString('sv-SE')} kg total volym</p>
+    ${changes.length?`<div class="card">${changes.map(c=>`<div class="list-item ${c.cls}">${esc(c.t)}</div>`).join('')}</div>`:''}
+    <button class="primary big" data-action="close-sheet">Stäng</button>`);
+  tab='pass'; render();
+}
+
+const volume = s => s.items.reduce((a,it)=>a+it.sets.reduce((b,x)=>b+(x.w||0)*(EX[it.exId]?.unit==='sek'?0:x.r),0),0);
+
+/* ------------------------- Vilotimer ------------------------- */
+const Timer = {
+  end:0, iv:null, ctx:null, beeped:false,
+  start(sec, label){ this.end=Date.now()+sec*1000; this.beeped=false; $('#timerLabel').textContent=label||'Vila'; $('#timer').classList.add('show'); $('#timer').classList.remove('over'); clearInterval(this.iv); this.iv=setInterval(()=>this.tick(),250); this.tick(); },
+  add(s){ this.end+=s*1000; if(this.end>Date.now()){ this.beeped=false; $('#timer').classList.remove('over'); } this.tick(); },
+  stop(){ clearInterval(this.iv); $('#timer').classList.remove('show'); },
+  tick(){
+    const left=Math.round((this.end-Date.now())/1000), a=Math.abs(left);
+    $('#timerT').textContent=(left<0?'+':'')+Math.floor(a/60)+':'+String(a%60).padStart(2,'0');
+    if(left<=0 && !this.beeped){ this.beeped=true; $('#timer').classList.add('over'); this.beep(); try{navigator.vibrate&&navigator.vibrate([250,120,250,120,400]);}catch(e){} }
+  },
+  unlock(){ try{ if(!this.ctx) this.ctx=new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); }catch(e){} },
+  beep(){ try{ const c=this.ctx; if(!c) return; [0,.3,.6].forEach(d=>{ const o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.connect(g); g.connect(c.destination); g.gain.setValueAtTime(.0001,c.currentTime+d); g.gain.exponentialRampToValueAtTime(.4,c.currentTime+d+.02); g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+d+.22); o.start(c.currentTime+d); o.stop(c.currentTime+d+.25); }); }catch(e){} }
+};
+
+const WakeLock = {
+  lock:null,
+  async on(){ try{ if('wakeLock' in navigator && !this.lock){ this.lock=await navigator.wakeLock.request('screen'); this.lock.addEventListener('release',()=>{this.lock=null;}); } }catch(e){} },
+  off(){ try{ this.lock && this.lock.release(); }catch(e){} this.lock=null; }
+};
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && state.active) WakeLock.on(); });
+
+/* ------------------------- Vyer ------------------------- */
+function render(){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('act', b.dataset.tab===tab));
+  const v=$('#view');
+  if(!state.profile.age || !state.program){ v.innerHTML = viewOnboarding(); return; }
+  v.innerHTML = ({pass:viewPass, program:viewProgram, historik:viewHistory, mer:viewMore})[tab]();
+  if(tab==='historik') drawHistoryCharts();
+}
+
+function profileForm(){
+  const p=state.profile;
+  const opt=(o,val)=>Object.entries(o).map(([k,l])=>`<option value="${k}" ${k===val?'selected':''}>${esc(l)}</option>`).join('');
+  return `
+  <label>Förnamn (valfritt)</label><input id="pf-name" value="${esc(p.name)}" autocomplete="given-name">
+  <div class="grid2">
+    <div><label>Ålder</label><input id="pf-age" inputmode="numeric" value="${esc(p.age)}"></div>
+    <div><label>Kön</label><select id="pf-sex">${opt({man:'Man',kvinna:'Kvinna',annat:'Vill ej ange'},p.sex)}</select></div>
+    <div><label>Längd (cm)</label><input id="pf-height" inputmode="numeric" value="${esc(p.height)}"></div>
+    <div><label>Vikt (kg)</label><input id="pf-weight" inputmode="decimal" value="${esc(fmt(num(p.weight)))}"></div>
+    <div><label>Målvikt (kg)</label><input id="pf-target" inputmode="decimal" value="${esc(fmt(num(p.targetWeight)))}"></div>
+    <div><label>Passlängd</label><select id="pf-min">${opt({45:'45 min',60:'60 min',75:'75 min'},String(p.minutes))}</select></div>
+  </div>
+  <label>Träningsvana</label><select id="pf-exp">${opt(EXPERIENCE,p.experience)}</select>
+  <label>Mål</label><select id="pf-goal">${opt(Object.fromEntries(Object.entries(GOALS).map(([k,g])=>[k,g.label])),p.goal)}</select>
+  <label class="check" style="margin-top:12px"><input type="checkbox" id="pf-free" ${p.preferFree?'checked':''}> Föredrar fria vikter framför maskiner</label>`;
+}
+function readProfileForm(){
+  const p=state.profile, oldW=num(p.weight);
+  p.name=$('#pf-name').value.trim(); p.age=$('#pf-age').value.trim(); p.sex=$('#pf-sex').value;
+  p.height=$('#pf-height').value.trim(); p.weight=fmt(num($('#pf-weight').value)).replace(',','.');
+  p.targetWeight=fmt(num($('#pf-target').value)).replace(',','.');
+  p.minutes=+$('#pf-min').value; p.experience=$('#pf-exp').value; p.goal=$('#pf-goal').value; p.preferFree=$('#pf-free').checked;
+  const w=num(p.weight);
+  if(isFinite(w) && w!==oldW) addBodyweight(w);
+  const age=num(p.age);
+  if(!(age>=13 && age<=100)) { toast('Fyll i en rimlig ålder.'); return false; }
+  if(!(w>=30 && w<=250)) { toast('Fyll i din vikt i kg.'); return false; }
+  return true;
+}
+function addBodyweight(kg){
+  const today=new Date().toDateString();
+  state.bodyweight = state.bodyweight.filter(b=>new Date(b.date).toDateString()!==today);
+  state.bodyweight.push({date:Date.now(), kg}); state.bodyweight.sort((a,b)=>a.date-b.date);
+}
+
+function equipmentForm(){
+  return EQUIP.map(([k,l])=>`<label class="check"><input type="checkbox" data-eq="${k}" ${state.equipment[k]?'checked':''}> ${esc(l)}</label>`).join('') +
+  `<label>Hantlarnas viktsteg</label><select id="dbstep"><option value="2" ${state.dbStep==2?'selected':''}>2 kg</option><option value="2.5" ${state.dbStep==2.5?'selected':''}>2,5 kg</option></select>`;
+}
+
+function viewOnboarding(){
+  return `<h2>Kom igång</h2>
+  <div class="card"><p class="muted" style="margin-top:0">Fyll i uppgifterna så bygger appen tre helkroppspass som du roterar mellan (A, B, C). Allt går att ändra senare.</p>${profileForm()}</div>
+  <div class="card"><h3>Utrustning på gymmet</h3><p class="small muted" style="margin-top:0">Bocka ur det som saknas eller som du inte vill använda.</p>${equipmentForm()}</div>
+  <div class="card"><h3>Har du redan data?</h3><p class="small muted" style="margin-top:0">Logga in under synk så hämtas dina pass från molnet.</p><button class="ghost" data-action="goto-sync">Synk och inloggning</button></div>
+  <button class="primary big" data-action="create-program">Skapa mitt program</button>`;
+}
+
+function viewPass(){
+  if(state.active) return viewActive();
+  const P=state.program, next=P.passes[P.nextIndex]||P.passes[0];
+  const wk=state.sessions.filter(s=>s.date>=weekStart()).length;
+  const last=state.sessions[0];
+  const hi = state.profile.name ? `Hej ${esc(state.profile.name)}!` : 'Dags att träna?';
+  return `<h2>${hi}</h2>
+  <div class="card">
+    <div class="row between"><div><div class="small muted">Den här veckan</div><div class="stat">${wk} av 3 pass</div></div>
+    ${last?`<div class="small muted" style="text-align:right">Senast<br>${esc('Pass '+last.passId)}, ${esc(dateStr(last.date))}</div>`:''}</div>
+    <div class="progress" style="margin-top:10px"><div style="width:${Math.min(100,wk/3*100)}%"></div></div>
+  </div>
+  <div class="card">
+    <div class="small muted">Välj pass</div>
+    <div style="margin:8px 0 4px">${P.passes.map((p,i)=>`<span class="chip ${p===next?'sel':''}" data-action="pick-pass" data-i="${i}">${esc(p.name)}${i===P.nextIndex?' · nästa':''}</span>`).join('')}</div>
+    <h3 style="margin-top:8px">${esc(next.name)}</h3>
+    ${next.items.map(it=>{const ex=EX[it.exId],L=state.lifts[it.exId]||{};return `<div class="ex row between"><div><div class="exname">${esc(ex.n)}</div><div class="small muted">${it.sets} × ${it.repMin}–${it.repMax} ${unitOf(ex)}</div></div><div class="small">${ex.bw?'kroppsvikt':fmt(L.weight)+' kg'}</div></div>`}).join('')}
+  </div>
+  <button class="primary big" data-action="start" data-i="${P.passes.indexOf(next)}">Starta ${esc(next.name)}</button>
+  <p class="small muted" style="text-align:center">Värm upp 5–10 minuter först, gärna cykel eller roddmaskin, och kör ett lätt uppvärmningsset på första övningen.</p>`;
+}
+
+function viewActive(){
+  const a=state.active, mins=Math.round((Date.now()-a.startedAt)/60000);
+  const doneSets=a.items.reduce((n,it)=>n+it.sets.filter(s=>s.done).length,0), allSets=a.items.reduce((n,it)=>n+it.sets.length,0);
+  return `<div class="row between"><h2>Pass ${esc(a.passId)}</h2><span class="muted small">${mins} min · ${doneSets}/${allSets} set</span></div>
+  <div class="progress" style="margin-bottom:12px"><div style="width:${allSets?doneSets/allSets*100:0}%"></div></div>
+  ${a.items.map((it,ii)=>{
+    const ex=EX[it.exId], u=unitOf(ex);
+    return `<div class="card">
+      <div class="row between" style="align-items:flex-start"><div><div class="exname">${esc(ex.n)}</div>
+      <div class="small muted">${it.sets.length} × ${it.repMin}–${it.repMax} ${u} · vila ${restStr(it.rest)}${ex.per==='hantel'?' · vikt per hantel':''}</div></div></div>
+      <div class="row wrap" style="gap:14px;margin:4px 0">
+        <a class="small" href="${ytLink(ex)}" target="_blank" rel="noopener">Instruktionsfilm</a>
+        <button class="linkbtn" data-action="swap" data-ii="${ii}">Byt övning</button>
+        ${ex.inc==='bar'?`<button class="linkbtn" data-action="plates" data-w="${it.sets[0].w}">Skivor</button>`:''}
+      </div>
+      <div class="sethead"><span>Set</span><span>${ex.bw?'Extra kg':'Kg'}</span><span>${u==='sek'?'Sek':'Reps'}</span><span></span></div>
+      ${it.sets.map((s,si)=>`<div class="setrow ${s.done?'done':''}"><span class="n">${si+1}</span>
+        <input inputmode="decimal" data-field="w" data-ii="${ii}" data-si="${si}" value="${esc(fmt(num(s.w)))}">
+        <input inputmode="numeric" data-field="r" data-ii="${ii}" data-si="${si}" value="${esc(s.r)}">
+        <button class="ok" data-action="set-done" data-ii="${ii}" data-si="${si}" aria-label="Klart">✓</button></div>`).join('')}
+      <div class="row" style="gap:14px"><button class="linkbtn" data-action="add-set" data-ii="${ii}">+ Lägg till set</button>${it.sets.length>1?`<button class="linkbtn" style="color:var(--muted)" data-action="del-set" data-ii="${ii}">Ta bort set</button>`:''}</div>
+    </div>`;}).join('')}
+  <p class="small muted">Siffrorna är fyllda med målet. Ändra reps om du gjorde färre, och tryck sedan ✓.</p>
+  <button class="primary big" data-action="finish">Avsluta och spara passet</button>
+  <div style="height:10px"></div>
+  <button class="danger big" data-action="cancel">Avbryt utan att spara</button>`;
+}
+
+function viewProgram(){
+  const P=state.program, g=GOALS[state.profile.goal];
+  return `<h2>Mitt program</h2>
+  <div class="card small muted">Tre helkroppspass som roteras A, B, C. Mål: ${esc(g.label.toLowerCase())}, ${state.profile.minutes} min per pass, ${esc(EXPERIENCE[state.profile.experience].toLowerCase())}. Vikterna ökar automatiskt när du klarar övre gränsen i alla set.</div>
+  ${P.passes.map((p,pi)=>`<div class="card"><h3>${esc(p.name)}</h3>
+    ${p.items.map((it,ii)=>{const ex=EX[it.exId],L=state.lifts[it.exId]||{weight:0};return `<div class="ex">
+      <div class="row between"><div class="exname">${esc(ex.n)}</div>${ex.free&&!ex.bw?'<span class="tag">fria vikter</span>':ex.bw?'<span class="tag">kroppsvikt</span>':'<span class="tag">maskin</span>'}</div>
+      <div class="row between" style="margin-top:6px">
+        <span class="small muted">${it.sets} × ${it.repMin}–${it.repMax} ${unitOf(ex)} · vila ${restStr(it.rest)}</span>
+        ${ex.bw?'':`<span class="row" style="gap:6px"><input style="width:84px;text-align:center;padding:8px" inputmode="decimal" data-lift="${it.exId}" value="${esc(fmt(L.weight))}"><span class="small muted">kg</span></span>`}
+      </div>
+      <div class="row" style="gap:14px"><a class="small" href="${ytLink(ex)}" target="_blank" rel="noopener">Instruktionsfilm</a><button class="linkbtn" data-action="swap-prog" data-pi="${pi}" data-ii="${ii}">Byt övning</button></div>
+    </div>`}).join('')}</div>`).join('')}
+  <div class="card small muted">Startvikterna är försiktiga förslag utifrån ålder, vikt och vana. Justera direkt i rutorna så att sista repetitionen i varje set känns tung men går att göra med bra teknik.</div>
+  <button class="ghost big" data-action="regen">Skapa nytt program från profilen</button>`;
+}
+
+function viewHistory(){
+  const S=state.sessions;
+  const exIds=[...new Set(S.flatMap(s=>s.items.map(i=>i.exId)))].filter(id=>EX[id] && !EX[id].bw);
+  if(!histSel || !exIds.includes(histSel)) histSel=exIds[0]||null;
+  const bw=state.bodyweight, lastBw=bw[bw.length-1];
+  const tgt=num(state.profile.targetWeight);
+  return `<h2>Historik</h2>
+  <div class="card"><div class="row between"><h3>Kroppsvikt</h3>${lastBw?`<span class="small muted">${fmt(lastBw.kg)} kg${isFinite(tgt)?` · mål ${fmt(tgt)} kg`:''}</span>`:''}</div>
+    ${bw.length>1?'<canvas id="bwChart"></canvas>':'<p class="small muted">Logga vikten några gånger så ritas en kurva.</p>'}
+    <div class="row" style="margin-top:10px"><input id="bwInput" inputmode="decimal" placeholder="Dagens vikt, kg"><button class="primary" data-action="add-bw">Spara</button></div>
+  </div>
+  <div class="card"><h3>Styrkeutveckling</h3>
+    ${exIds.length?`<select id="histEx">${exIds.map(id=>`<option value="${id}" ${id===histSel?'selected':''}>${esc(EX[id].n)}</option>`).join('')}</select>
+    <canvas id="exChart" style="margin-top:10px"></canvas><p class="small muted" style="margin:6px 0 0">Tyngsta vikten du klarade med minst nedre repsgränsen, per pass.</p>`:'<p class="small muted">Här syns utvecklingen när du har loggat några pass.</p>'}
+  </div>
+  <div class="card"><h3>Genomförda pass (${S.length})</h3>
+    ${S.length?S.slice(0,60).map(s=>`<details class="list-item"><summary class="row between" style="cursor:pointer"><span><b>${esc('Pass '+s.passId)}</b> <span class="muted small">${esc(dateStr(s.date))}</span></span><span class="small muted">${s.minutes} min · ${Math.round(volume(s)).toLocaleString('sv-SE')} kg</span></summary>
+      <div class="small" style="margin-top:8px">${s.items.map(it=>`<div style="margin:4px 0"><b>${esc(EX[it.exId]?.n||it.exId)}</b>: ${it.sets.map(x=>EX[it.exId]?.bw&&!x.w?`${x.r}`:`${fmt(x.w)}×${x.r}`).join(', ')}</div>`).join('')}
+      <button class="linkbtn" style="color:var(--bad)" data-action="del-session" data-id="${s.id}">Radera passet</button></div></details>`).join(''):'<p class="small muted">Inga pass ännu.</p>'}
+  </div>`;
+}
+
+function drawHistoryCharts(){
+  const bwC=$('#bwChart');
+  if(bwC) drawLine(bwC, state.bodyweight.map(b=>({x:b.date,y:b.kg})), {target:num(state.profile.targetWeight), unit:'kg'});
+  const exC=$('#exChart');
+  if(exC && histSel){
+    const pts=[...state.sessions].reverse().map(s=>{ const it=s.items.find(i=>i.exId===histSel); if(!it) return null;
+      const ok=it.sets.filter(x=>x.r>=(it.repMin||1)); const pool=ok.length?ok:it.sets; return {x:s.date, y:Math.max(...pool.map(x=>x.w))}; }).filter(Boolean);
+    drawLine(exC, pts, {unit:'kg'});
+  }
+}
+
+function drawLine(cv, pts, opt={}){
+  const dpr=window.devicePixelRatio||1, W=cv.clientWidth, H=cv.clientHeight;
+  cv.width=W*dpr; cv.height=H*dpr; const c=cv.getContext('2d'); c.scale(dpr,dpr);
+  c.font='12px system-ui'; c.fillStyle='#9aa3b2';
+  if(!pts.length){ c.fillText('Ingen data än',10,20); return; }
+  const ys=pts.map(p=>p.y); if(isFinite(opt.target)) ys.push(opt.target);
+  let lo=Math.min(...ys), hi=Math.max(...ys); if(hi-lo<2){lo-=1;hi+=1;} const pad=(hi-lo)*.12; lo-=pad; hi+=pad;
+  const x0=pts[0].x, x1=pts[pts.length-1].x||x0+1, L=40,R=10,T=10,B=24;
+  const X=x=> pts.length===1 ? (L+W-R)/2 : L+(x-x0)/(x1-x0||1)*(W-L-R);
+  const Y=y=> T+(hi-y)/(hi-lo)*(H-T-B);
+  c.strokeStyle='#2c313c'; c.lineWidth=1;
+  for(let i=0;i<=3;i++){ const v=lo+(hi-lo)*i/3, y=Y(v); c.beginPath(); c.moveTo(L,y); c.lineTo(W-R,y); c.stroke(); c.fillText(fmt(Math.round(v*10)/10),4,y+4); }
+  c.fillText(dateStr(x0,{day:'numeric',month:'short'}),L,H-6);
+  if(pts.length>1){ const t=dateStr(x1,{day:'numeric',month:'short'}); c.fillText(t,W-R-c.measureText(t).width,H-6); }
+  if(isFinite(opt.target)){ c.setLineDash([5,5]); c.strokeStyle='#ffb547'; c.beginPath(); c.moveTo(L,Y(opt.target)); c.lineTo(W-R,Y(opt.target)); c.stroke(); c.setLineDash([]); c.fillStyle='#ffb547'; c.fillText('mål',W-R-24,Y(opt.target)-4); }
+  c.strokeStyle='#b6f24a'; c.lineWidth=2.5; c.beginPath(); pts.forEach((p,i)=>{ i?c.lineTo(X(p.x),Y(p.y)):c.moveTo(X(p.x),Y(p.y)); }); c.stroke();
+  c.fillStyle='#b6f24a'; pts.forEach(p=>{ c.beginPath(); c.arc(X(p.x),Y(p.y),3.5,0,7); c.fill(); });
+}
+
+function viewMore(){
+  return `<h2>Profil och inställningar</h2>
+  <div class="card"><h3>Profil</h3>${profileForm()}<div style="height:12px"></div><button class="primary big" data-action="save-profile">Spara profil</button></div>
+  <div class="card"><h3>Utrustning</h3>${equipmentForm()}<p class="small muted">Ändringar gäller när du skapar nytt program eller byter övning.</p></div>
+  <div class="card"><h3>Skivräknare</h3><p class="small muted" style="margin-top:0">Vilka skivor ska på varje sida av stången?</p><button class="ghost big" data-action="plates" data-w="60">Öppna skivräknaren</button></div>
+  <div class="card" id="syncCard">${syncCardHtml()}</div>
+  <div class="card"><h3>Säkerhetskopia</h3><p class="small muted" style="margin-top:0">Spara all data som en fil, eller läs in en tidigare kopia.</p>
+    <div class="row"><button class="ghost grow" data-action="export">Exportera</button><button class="ghost grow" data-action="import">Importera</button></div>
+    <input type="file" id="importFile" accept="application/json" style="display:none"></div>
+  <div class="card small muted">Programmen bygger på fasta regler: tre helkroppspass, repsintervall efter mål, dubbel progression och sänkning med 10 % efter tre misslyckade pass i rad. Det här är förslag och ersätter inte råd från en personlig tränare eller läkare. Ont i leder eller bröst? Avbryt och kolla upp det.</div>
+  <button class="danger big" data-action="reset">Radera all data på den här enheten</button>`;
+}
+
+/* ------------------------- Skivräknare ------------------------- */
+const PLATE_COLORS={25:'#d33',20:'#2a6fdb',15:'#e0b400',10:'#2e9e4f',5:'#eee',2.5:'#c33',1.25:'#888'};
+function platesSheet(w){
+  openSheet(`<h2>Skivräknare</h2>
+    <div class="grid2"><div><label>Totalvikt (kg)</label><input id="pl-w" inputmode="decimal" value="${esc(fmt(w))}"></div>
+    <div><label>Stång</label><select id="pl-bar"><option value="20">20 kg (herr)</option><option value="15">15 kg (dam)</option><option value="10">10 kg</option></select></div></div>
+    <div id="pl-out"></div>
+    <button class="ghost big" data-action="close-sheet">Stäng</button>`);
+  const calc=()=>{
+    const W=num($('#pl-w').value), bar=+$('#pl-bar').value, out=$('#pl-out');
+    if(!isFinite(W)){ out.innerHTML=''; return; }
+    if(W<bar){ out.innerHTML=`<p class="warn">Lägre än stångens vikt (${bar} kg).</p>`; return; }
+    let side=(W-bar)/2; const res=[];
+    for(const p of [25,20,15,10,5,2.5,1.25]){ while(side>=p-1e-9){ res.push(p); side=Math.round((side-p)*1000)/1000; } }
+    const h=p=>({25:90,20:86,15:76,10:64,5:48,2.5:38,1.25:30}[p]);
+    out.innerHTML=`<div class="plates"><div class="barstub"></div>${res.map(p=>`<div class="plate" style="background:${PLATE_COLORS[p]};height:${h(p)}px;width:${p>=10?22:16}px;color:${p===5?'#222':'#fff'}">${fmt(p)}</div>`).join('')}</div>
+      <p style="text-align:center;font-size:18px"><b>Per sida:</b> ${res.length?res.map(fmt).join(' + ')+' kg':'inga skivor'}</p>
+      ${side>0?`<p class="warn small" style="text-align:center">Går inte jämnt ut. ${fmt(side*2)} kg saknas.</p>`:''}`;
+  };
+  $('#pl-w').addEventListener('input',calc); $('#pl-bar').addEventListener('change',calc); calc();
+}
+
+/* ------------------------- Byt övning ------------------------- */
+function swapSheet(slotKey, current, onPick, showToday){
+  const alts=altCandidates(slotKey,current);
+  openSheet(`<h2>Byt övning</h2><p class="small muted">Nu: ${esc(EX[current].n)}</p>
+   ${alts.length?alts.map(id=>`<div class="list-item row between"><div><div class="exname">${esc(EX[id].n)}</div><div class="small muted">${EX[id].bw?'kroppsvikt':EX[id].free?'fria vikter':'maskin'}</div></div>
+     <div class="row" style="gap:6px">${showToday?`<button class="ghost" data-pick="${id}" data-scope="today">Idag</button>`:''}<button class="primary" data-pick="${id}" data-scope="prog">${showToday?'Alltid':'Välj'}</button></div></div>`).join(''):'<p class="muted">Inga alternativ med din utrustning.</p>'}
+   <div style="height:10px"></div><button class="ghost big" data-action="close-sheet">Avbryt</button>`);
+  $('#sheet').querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click',()=>{ onPick(b.dataset.pick, b.dataset.scope); closeSheet(); }));
+}
+function replaceInProgram(slotKey, oldId, newId){
+  for(const p of state.program.passes) for(const it of p.items) if(it.slot===slotKey && it.exId===oldId){
+    Object.assign(it, {exId:newId, ...scheme(it.role,newId,state.profile)});
+  }
+  if(!state.lifts[newId]) state.lifts[newId]={weight:startWeight(newId,state.profile),fails:0};
+}
+
+/* ------------------------- Sheet ------------------------- */
+function ask(msg, yes='Ja', no='Avbryt'){
+  return new Promise(res=>{
+    openSheet(`<h2 style="font-size:19px">${esc(msg)}</h2><div class="row" style="margin-top:14px"><button class="ghost grow" id="askNo">${esc(no)}</button><button class="primary grow" id="askYes">${esc(yes)}</button></div>`);
+    $('#askYes').onclick=()=>{closeSheet();res(true);}; $('#askNo').onclick=()=>{closeSheet();res(false);};
+  });
+}
+function openSheet(html){ $('#sheet').innerHTML=html; $('#sheetwrap').classList.add('show'); }
+function closeSheet(){ $('#sheetwrap').classList.remove('show'); }
+$('#sheetwrap').addEventListener('click',e=>{ if(e.target.id==='sheetwrap') closeSheet(); });
+
+/* ------------------------- Händelser ------------------------- */
+document.getElementById('nav').addEventListener('click',e=>{ const b=e.target.closest('button[data-tab]'); if(!b) return; tab=b.dataset.tab; render(); window.scrollTo(0,0); });
+
+document.addEventListener('click', async e=>{
+  const el=e.target.closest('[data-action]'); if(!el) return;
+  const A=el.dataset.action, ii=+el.dataset.ii, si=+el.dataset.si;
+  const a=state.active;
+  switch(A){
+    case 'create-program':{
+      if(!readProfileForm()) return; readEquipment();
+      generateProgram(); save(); tab='pass'; render(); window.scrollTo(0,0); toast('Ditt program är klart.'); break; }
+    case 'goto-sync': openSheet(`<div id="syncCard">${syncCardHtml()}</div><button class="ghost big" data-action="close-sheet">Stäng</button>`); break;
+    case 'pick-pass': break;
+    case 'start': Timer.unlock(); startSession(+el.dataset.i); window.scrollTo(0,0); break;
+    case 'set-done':{
+      Timer.unlock(); syncInputs(); const s=a.items[ii].sets[si]; s.done=!s.done; save();
+      if(s.done){ const it=a.items[ii]; const lastSetOfEx = it.sets.every(x=>x.done); Timer.start(it.rest, lastSetOfEx?'Vila, sedan nästa övning':`Vila före set ${Math.min(si+2,it.sets.length)}`); }
+      render(); break; }
+    case 'add-set':{ syncInputs(); const it=a.items[ii], l=it.sets[it.sets.length-1]; it.sets.push({w:l.w,r:l.r,done:false}); save(); render(); break; }
+    case 'del-set':{ syncInputs(); a.items[ii].sets.pop(); save(); render(); break; }
+    case 'swap':{ syncInputs(); const it=a.items[ii]; swapSheet(it.slot, it.exId, (id,scope)=>{
+        if(scope==='prog') replaceInProgram(it.slot, it.exId, id);
+        else if(!state.lifts[id]) state.lifts[id]={weight:startWeight(id,state.profile),fails:0};
+        const sc=scheme(it.role,id,state.profile), L=state.lifts[id];
+        Object.assign(it,{exId:id,...sc,sets:Array.from({length:sc.sets},()=>({w:EX[id].bw?0:L.weight,r:sc.repMax,done:false}))});
+        save(); render(); }, true); break; }
+    case 'swap-prog':{ const it=state.program.passes[+el.dataset.pi].items[ii]; swapSheet(it.slot,it.exId,(id)=>{ replaceInProgram(it.slot,it.exId,id); save(); render(); }, false); break; }
+    case 'plates': platesSheet(num(el.dataset.w)||60); break;
+    case 'finish':{ syncInputs(); const any=a.items.some(it=>it.sets.some(s=>s.done)); if(!any && !await ask('Inga set är markerade som klara. Avsluta ändå?')) return; finishSession(); break; }
+    case 'cancel': if(await ask('Avbryta passet? Inget sparas.')){ state.active=null; Timer.stop(); WakeLock.off(); save(); render(); } break;
+    case 'timer-add': Timer.add(30); break;
+    case 'timer-stop': Timer.stop(); break;
+    case 'close-sheet': closeSheet(); break;
+    case 'regen': if(await ask('Skapa ett nytt program utifrån profil och utrustning? Dina vikter och din historik sparas.')){ readEquipmentIfShown(); generateProgram(); save(); render(); toast('Nytt program skapat.'); } break;
+    case 'save-profile':{ if(!readProfileForm()) return; save(); toast('Profilen är sparad. Skapa nytt program under Program om du vill att ändringarna ska slå igenom.',4000); render(); break; }
+    case 'add-bw':{ const v=num($('#bwInput').value); if(!(v>=30&&v<=250)) return toast('Skriv vikten i kg.'); addBodyweight(v); state.profile.weight=String(v); save(); render(); toast('Vikten är sparad.'); break; }
+    case 'del-session': if(await ask('Radera passet från historiken?')){ state.sessions=state.sessions.filter(s=>s.id!==el.dataset.id); save(); render(); } break;
+    case 'export':{ const blob=new Blob([JSON.stringify(state,null,1)],{type:'application/json'}); const u=URL.createObjectURL(blob); const l=document.createElement('a'); l.href=u; l.download='gymloggen-'+new Date().toISOString().slice(0,10)+'.json'; l.click(); setTimeout(()=>URL.revokeObjectURL(u),2000); break; }
+    case 'import': $('#importFile').click(); break;
+    case 'reset': if(await ask('Radera all data på den här enheten? Data i molnet påverkas inte.')){ localStorage.removeItem(LS_KEY); state=defaultState(); Sync.signOutQuiet(); render(); } break;
+    case 'sync-login': Sync.login(); break;
+    case 'sync-logout': Sync.logout(); break;
+    case 'sync-save-config': Sync.saveConfigFromInput(); break;
+    case 'sync-clear-config': localStorage.removeItem(LS_CFG); toast('Inställningen är borttagen.'); refreshSyncCard(); break;
+    case 'sync-now': Sync.pushNow(); break;
+  }
+});
+
+// valt pass från chips
+document.addEventListener('click',e=>{ const c=e.target.closest('[data-action="pick-pass"]'); if(!c) return;
+  const i=+c.dataset.i, P=state.program, p=P.passes[i];
+  const card=c.closest('.card'); const btn=document.querySelector('[data-action="start"]');
+  if(btn){ btn.dataset.i=i; btn.textContent='Starta '+p.name; }
+  if(card){ card.querySelector('h3').textContent=p.name;
+    card.querySelectorAll('.ex').forEach(n=>n.remove());
+    card.insertAdjacentHTML('beforeend', p.items.map(it=>{const ex=EX[it.exId],L=state.lifts[it.exId]||{};return `<div class="ex row between"><div><div class="exname">${esc(ex.n)}</div><div class="small muted">${it.sets} × ${it.repMin}–${it.repMax} ${unitOf(ex)}</div></div><div class="small">${ex.bw?'kroppsvikt':fmt(L.weight)+' kg'}</div></div>`}).join(''));
+  }
+}, true);
+
+document.addEventListener('change', e=>{
+  const t=e.target;
+  if(t.dataset.eq){ state.equipment[t.dataset.eq]=t.checked; save(); }
+  if(t.id==='dbstep'){ state.dbStep=+t.value; save(); }
+  if(t.dataset.lift){ const v=num(t.value); if(isFinite(v)&&v>=0){ state.lifts[t.dataset.lift]={...(state.lifts[t.dataset.lift]||{}),weight:v,fails:0}; save(); t.value=fmt(v); } }
+  if(t.id==='histEx'){ histSel=t.value; drawHistoryCharts(); }
+  if(t.id==='importFile' && t.files[0]){ const r=new FileReader(); r.onload=async()=>{ try{ const s=JSON.parse(r.result); if(!s.v) throw 0; if(!await ask('Ersätta all data på enheten med säkerhetskopian?')) return; state=Object.assign(defaultState(),s); save(); render(); toast('Säkerhetskopian är inläst.'); }catch(err){ toast('Filen kunde inte läsas.'); } }; r.readAsText(t.files[0]); }
+});
+document.addEventListener('input', e=>{ const t=e.target; if(t.dataset.field && state.active){ syncInputs(); persistLocal(); } });
+
+function syncInputs(){
+  if(!state.active) return;
+  document.querySelectorAll('[data-field]').forEach(inp=>{
+    const s=state.active.items[+inp.dataset.ii]?.sets[+inp.dataset.si]; if(!s) return;
+    if(inp.dataset.field==='w'){ const v=num(inp.value); s.w=isFinite(v)?v:0; }
+    else { const v=parseInt(inp.value,10); s.r=isFinite(v)?v:0; }
+  });
+}
+function readEquipment(){ document.querySelectorAll('[data-eq]').forEach(c=>state.equipment[c.dataset.eq]=c.checked); const d=$('#dbstep'); if(d) state.dbStep=+d.value; }
+function readEquipmentIfShown(){ if(document.querySelector('[data-eq]')) readEquipment(); }
+
+/* ------------------------- Synk (Firebase) ------------------------- */
+function parseConfig(text){
+  if(!text) return null;
+  let t=String(text); const a=t.indexOf('{'), b=t.lastIndexOf('}'); if(a<0||b<0) return null;
+  t=t.slice(a,b+1);
+  try{ return JSON.parse(t); }catch(e){}
+  try{ const j=t.replace(/\/\/.*$/gm,'').replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g,'$1"$2":').replace(/'/g,'"').replace(/,\s*}/g,'}'); return JSON.parse(j); }catch(e){ return null; }
+}
+function getConfig(){ return FIREBASE_CONFIG || parseConfig(localStorage.getItem(LS_CFG)); }
+
+function syncCardHtml(){
+  const cfg=getConfig(), u=Sync.user;
+  if(!cfg) return `<h3>Synk mellan enheter</h3>
+    <p class="small muted" style="margin-top:0">Klistra in firebaseConfig från Firebase-konsolen (Projektinställningar, Dina appar, webbapp). Se README för steg för steg.</p>
+    <textarea id="cfgInput" placeholder="const firebaseConfig = { apiKey: ..., authDomain: ..., projectId: ... };"></textarea>
+    <div style="height:10px"></div><button class="primary big" data-action="sync-save-config">Spara och aktivera synk</button>`;
+  if(!u) return `<h3>Synk mellan enheter</h3><p class="small muted" style="margin-top:0">Logga in med samma Google-konto på alla enheter så synkas pass, program och vikter automatiskt.</p>
+    ${Sync.error?`<p class="bad small">${esc(Sync.error)}</p>`:''}
+    <button class="primary big" data-action="sync-login">Logga in med Google</button>
+    ${FIREBASE_CONFIG?'':'<div style="height:8px"></div><button class="linkbtn" data-action="sync-clear-config">Ta bort Firebase-inställningen</button>'}`;
+  return `<h3>Synk mellan enheter</h3><p class="small" style="margin-top:0"><span class="good">●</span> Inloggad som ${esc(u.email||u.displayName||'okänd')}</p>
+    <p class="small muted">${Sync.lastSync?'Senast synkad '+new Date(Sync.lastSync).toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'}):'Väntar på första synk'}</p>
+    ${Sync.error?`<p class="bad small">${esc(Sync.error)}</p>`:''}
+    <div class="row"><button class="ghost grow" data-action="sync-now">Synka nu</button><button class="ghost grow" data-action="sync-logout">Logga ut</button></div>`;
+}
+function refreshSyncCard(){ document.querySelectorAll('#syncCard').forEach(c=>c.innerHTML=syncCardHtml()); }
+function setSyncStatus(cls,text){ const d=$('#syncDot'); d.className=cls||''; $('#syncText').textContent=text; }
+
+const Sync = {
+  fb:null, user:null, unsub:null, timer:null, lastSync:0, error:'', initialDone:false,
+  async init(){
+    const cfg=getConfig(); if(!cfg){ setSyncStatus('', 'Lokalt'); return; }
+    try{
+      setSyncStatus('busy','Ansluter');
+      const base=`https://www.gstatic.com/firebasejs/${FB_VERSION}/`;
+      const [app, auth, fs] = await Promise.all([import(base+'firebase-app.js'), import(base+'firebase-auth.js'), import(base+'firebase-firestore.js')]);
+      const fa=app.initializeApp(cfg);
+      this.fb={...app,...auth,...fs, auth:auth.getAuth(fa), db:fs.getFirestore(fa)};
+      try{ await auth.getRedirectResult(this.fb.auth); }catch(e){ this.error=this.msg(e); }
+      auth.onAuthStateChanged(this.fb.auth, u=>this.onUser(u));
+    }catch(e){ this.error='Kunde inte ladda Firebase. Är du uppkopplad?'; setSyncStatus('err','Offline'); refreshSyncCard(); }
+  },
+  msg(e){ const c=e?.code||''; if(c.includes('unauthorized-domain')) return 'Domänen är inte godkänd. Lägg till din github.io-adress under Authentication, Settings, Authorized domains.'; if(c.includes('popup-closed')) return 'Inloggningen avbröts.'; if(c.includes('permission-denied')) return 'Åtkomst nekad. Kontrollera Firestore-reglerna (se README).'; return e?.message||String(e); },
+  async login(){
+    if(!this.fb){ await this.init(); if(!this.fb) return; }
+    this.error='';
+    const prov=new this.fb.GoogleAuthProvider();
+    try{ await this.fb.signInWithPopup(this.fb.auth, prov); }
+    catch(e){
+      const c=e?.code||'';
+      if(c.includes('popup-blocked')||c.includes('operation-not-supported')||c.includes('cancelled-popup')) { try{ await this.fb.signInWithRedirect(this.fb.auth, prov); }catch(e2){ this.error=this.msg(e2); } }
+      else this.error=this.msg(e);
+      refreshSyncCard();
+    }
+  },
+  async logout(){ if(this.unsub) this.unsub(); this.unsub=null; if(this.fb) await this.fb.signOut(this.fb.auth); },
+  signOutQuiet(){ try{ this.logout(); }catch(e){} },
+  onUser(u){
+    this.user=u; this.initialDone=false; if(this.unsub){ this.unsub(); this.unsub=null; }
+    if(!u){ setSyncStatus('', 'Ej inloggad'); refreshSyncCard(); return; }
+    setSyncStatus('busy','Synkar');
+    const ref=this.fb.doc(this.fb.db, FIRESTORE_COLLECTION, u.uid);
+    this.ref=ref;
+    this.unsub=this.fb.onSnapshot(ref, snap=>this.onRemote(snap), err=>{ this.error=this.msg(err); setSyncStatus('err','Synkfel'); refreshSyncCard(); });
+    refreshSyncCard();
+  },
+  async onRemote(snap){
+    this.error='';
+    if(snap.metadata?.hasPendingWrites) return;
+    if(!snap.exists()){ this.initialDone=true; this.pushNow(); return; }
+    const d=snap.data(); let remote; try{ remote=JSON.parse(d.json); }catch(e){ return; }
+    const first=!this.initialDone; this.initialDone=true;
+    if(first && remote.updatedAt!==state.updatedAt){
+      const localHas = state.sessions.length>0, remoteHas=(remote.sessions||[]).length>0;
+      if(localHas && remoteHas && remote.updatedAt<state.updatedAt){
+        const useRemote=await ask(`Det finns data både här (${state.sessions.length} pass) och i molnet (${remote.sessions.length} pass). Vilken ska gälla?`,'Molnets data','Den här enhetens');
+        if(useRemote){ this.applyRemote(remote); } else { this.pushNow(); }
+        return;
+      }
+      if(!localHas && remoteHas){ this.applyRemote(remote); return; }
+    }
+    if((remote.updatedAt||0) > (state.updatedAt||0)) this.applyRemote(remote);
+    else if((remote.updatedAt||0) < (state.updatedAt||0)) this.pushNow();
+    else this.ok();
+  },
+  applyRemote(remote){
+    const keepActive = state.active && (!remote.active || remote.active.id===state.active.id) ? state.active : remote.active;
+    state=Object.assign(defaultState(), remote); state.active=keepActive||null;
+    persistLocal(); this.ok();
+    if(!document.querySelector('.setrow input:focus')) render();
+  },
+  ok(){ this.lastSync=Date.now(); setSyncStatus('on','Synkad'); refreshSyncCard(); },
+  schedulePush(){ if(!this.user) return; clearTimeout(this.timer); setSyncStatus('busy','Sparar'); this.timer=setTimeout(()=>this.pushNow(),1500); },
+  async pushNow(){
+    if(!this.user||!this.ref) return;
+    clearTimeout(this.timer);
+    try{ await this.fb.setDoc(this.ref,{json:JSON.stringify(state), updatedAt:state.updatedAt||Date.now()}); this.ok(); }
+    catch(e){ this.error=this.msg(e); setSyncStatus('err', navigator.onLine?'Synkfel':'Offline'); refreshSyncCard(); }
+  },
+  saveConfigFromInput(){
+    const cfg=parseConfig($('#cfgInput').value);
+    if(!cfg||!cfg.apiKey||!cfg.projectId) return toast('Hittade ingen giltig firebaseConfig. Kontrollera att apiKey och projectId finns med.',4000);
+    localStorage.setItem(LS_CFG, JSON.stringify(cfg)); toast('Sparat. Logga in med Google.'); this.fb=null; this.init().then(refreshSyncCard); refreshSyncCard();
+  }
+};
+window.addEventListener('online',()=>{ if(Sync.user) Sync.pushNow(); });
+
+/* ------------------------- Start ------------------------- */
+if(state.active){ WakeLock.on(); }
+render();
+Sync.init();
+setInterval(()=>{ if(state.active && tab==='pass' && !document.activeElement?.matches('input')){ const h=document.querySelector('main h2 + .muted, main .row.between .muted.small'); if(h){ const a=state.active; const d=a.items.reduce((n,it)=>n+it.sets.filter(s=>s.done).length,0), t=a.items.reduce((n,it)=>n+it.sets.length,0); h.textContent=`${Math.round((Date.now()-a.startedAt)/60000)} min · ${d}/${t} set`; } } }, 30000);
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
